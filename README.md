@@ -217,7 +217,7 @@ CREATE TABLE orders (
 More will come as we progress ahead 😃
 
 # TODO
-- [ ] Create Docker files for kafka, redis and postgres
+- [x] Create Docker files for kafka, redis and postgres
 - [ ] Create table structures for postgres, how topics would look like for kafka and structure for redis key value pairs
 - [ ] `Order Service` API created
 - [ ] `Order Processor Service` API Created

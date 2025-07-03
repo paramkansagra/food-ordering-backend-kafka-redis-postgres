@@ -1,0 +1,79 @@
+services:
+  kafka:
+    container_name: kafka1
+    image: bitnami/kafka
+    ports:
+      - "9094:9094"
+    environment:
+      # KRaft settings
+      - KAFKA_CFG_NODE_ID=1
+      - KAFKA_CFG_PROCESS_ROLES=broker,controller
+      - KAFKA_CONTROLLER_QUORUM_VOTERS=1@Kafka1:9093
+      - KAFKA_CONTROLLER_LISTENER_NAMES=CONTROLLER
+      # LISTENER SETTINGS
+      - KAFKA_CFG_LISTENERS=PLAINTEXT://PLAINTEXT:9092,CONTROLLER://:9093,EXTERNAL://:9094
+      - KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://kafka:9092,EXTERNAL://localhost:9094
+      - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT,EXTERNAL:PLAINTEXT
+      # CLUSTER SETTINGS
+      - KAFKA_KRAFT_CLUSTER_ID=CLUSTER_ID_1
+      # TOPIC ESTTINGS
+      - KAFKA_LOG_RETENTION_MS=120000
+    healthcheck:
+      test: kafka-topics.sh --list --bootstrap-server localhost:9094 || exit 1
+      interval: 5s
+      timeout: 30s
+      retries: 5
+  
+  kafka-ui:
+    container_name: kafka_ui
+    image: provectuslabs/kafka-ui
+    ports:
+      - "8080:8080"
+    environment:
+      - KAFKA_CLUSTERS_0_NAMES=localCluster
+      - KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS=kafka1:9092
+    depends_on:
+      - kafka
+  
+  redis:
+    container_name: redis
+    image: redis/redis-stack
+    ports:
+      - "6379:6379"
+      - "8001:8001"
+    environment:
+      REDIS_ARGS="--requirepass hello"
+    healthcheck:
+      test: ["CMD", "redis-cli" , "--raw" , "incr" , "ping"]
+      interval: 5s
+      timeout: 30s
+      retries: 5
+      start_period: 30s
+  
+  postgres:
+    container_name: postgres
+    image: postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin
+      PGDATA: /data/postgres
+      POSTGRES_DB: food-ordering
+    volumes:
+      - postgres:/data/postgres
+    ports:
+      - "5332:5332"
+    networks:
+      - postgres
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -d postgres"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+networks:
+  postgres:
+    driver: bridge
+
+volumes:
+  postgres:
